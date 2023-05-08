@@ -116,30 +116,34 @@ class Env():
             return 0.0  # Game continues, no reward
 
     def is_game_over(self, row: int, col: int) -> bool:
+        board = self.state.board
+
         # Check for four in a row horizontally
-        if self.check_line(row, self.state.board[row, :]):
+        horizontal_kernel = np.array([[1, 1, 1, 1]])
+        if np.any(convolve2d(board, horizontal_kernel, mode='valid') >= 4):
             return True
 
         # Check for four in a row vertically
-        if self.check_line(col, self.state.board[:, col]):
+        vertical_kernel = np.array([[1], [1], [1], [1]])
+        if np.any(convolve2d(board, vertical_kernel, mode='valid') >= 4):
             return True
 
         # Check for four in a row diagonally (top-left to bottom-right)
-        diag1 = np.diagonal(self.state.board, offset=col - row)
-        if self.check_line(min(row, col), diag1):
+        diag_kernel1 = np.eye(4)
+        if np.any(convolve2d(board, diag_kernel1, mode='valid') >= 4):
             return True
 
         # Check for four in a row diagonally (top-right to bottom-left)
-        flipped_board = np.fliplr(self.state.board)
-        diag2 = np.diagonal(flipped_board, offset=flipped_board.shape[1] - col - 1 - row)
-        if self.check_line(min(row, flipped_board.shape[1] - col - 1), diag2):
+        diag_kernel2 = np.fliplr(diag_kernel1)
+        if np.any(convolve2d(board, diag_kernel2, mode='valid') >= 4):
             return True
 
         # Check for a tie (board is full)
-        if np.all(self.state.board != 0):
+        if np.all(board != 0):
             return True
 
         return False
+
     def check_line(self, idx: int, line: np.ndarray) -> bool:
         length = 4
         start = 0
