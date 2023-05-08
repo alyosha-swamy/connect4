@@ -94,12 +94,63 @@ class Env():
         return [Action(i) for i in range(self.dims()[1]) if self.legal_mask()[i]]
 
     def step(self, a: Action, actor: Player) -> Reward:
-        ### YOUR CODE HERE: ###
-        # 1. We assume the move is legal. Modify the game board to reflect the move.
+        # 1. Assume the move is legal. Modify the game board to reflect the move.
+        col = int(a)
+        row = np.argmax(self.state.board[:, col] == 0)
+        self.state.board[row, col] = actor
+
         # 1.5 Add the move to self._moves.
+        self._moves.append((row, col))
+
         # 2. Check if the game is over. If so, set self._game_over and self._winner.
+        if self.is_game_over(row, col):
+            self._game_over = True
+            self._winner = actor
+
         # 3. Return the reward for the agent.
-        pass
+        if self._game_over and self._winner == actor:
+            return 1.0  # Agent wins
+        elif self._game_over and self._winner != actor:
+            return -1.0  # Agent loses
+        else:
+            return 0.0  # Game continues, no reward
+
+    def is_game_over(self, row: int, col: int) -> bool:
+        # Check for four in a row horizontally
+        if self.check_line(row, self.state.board[row, :]):
+            return True
+
+        # Check for four in a row vertically
+        if self.check_line(col, self.state.board[:, col]):
+            return True
+
+        # Check for four in a row diagonally (top-left to bottom-right)
+        diag1 = np.diagonal(self.state.board, offset=col - row)
+        if self.check_line(min(row, col), diag1):
+            return True
+
+        # Check for four in a row diagonally (top-right to bottom-left)
+        flipped_board = np.fliplr(self.state.board)
+        diag2 = np.diagonal(flipped_board, offset=flipped_board.shape[1] - col - 1 - row)
+        if self.check_line(min(row, flipped_board.shape[1] - col - 1), diag2):
+            return True
+
+        # Check for a tie (board is full)
+        if np.all(self.state.board != 0):
+            return True
+
+        return False
+    def check_line(self, idx: int, line: np.ndarray) -> bool:
+        length = 4
+        start = 0
+        end = start + length
+        while end <= line.size:
+            if np.all(line[start:end] == line[idx]):
+                return True
+            start += 1
+            end += 1
+        return False
+
     
     def undo(self):
         if len(self._moves) == 0:
